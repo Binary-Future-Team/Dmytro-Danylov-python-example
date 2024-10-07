@@ -1,0 +1,112 @@
+version: '3'
+services:
+  celery-worker: &base
+    build:
+      context: .
+      dockerfile: ./Dockerfile.local
+      args:
+        DEBIAN_FRONTEND: noninteractive
+        BASE_DIR: ${BASE_DIR}
+    volumes:
+      - ./app:${BASE_DIR}:rw
+      - ~/***-media/:${BASE_DIR}/app/media:rw
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: celery -A tasks.celery_app status
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    container_name: celery-worker
+    command: ./entrypoints/celery-worker.sh worker
+    restart: always
+    networks:
+      - ***
+    depends_on:
+      - rabbitmq
+      - mysql
+
+  celery-beat:
+    <<: *base
+    container_name: celery-beat
+    command: ./entrypoints/celery-beat.sh
+
+  celery-report:
+    <<: *base
+    container_name: celery-report
+    command: ./entrypoints/celery-worker.sh report
+
+  app:
+    <<: *base
+    container_name: app
+    command: bash ./entrypoints/app.sh
+
+  rabbitmq:
+    image: rabbitmq:management
+    restart: always
+    ports:
+      - ${RABBITMQ_EXTERNAL_ADDRESS}:${RABBITMQ_EXTERNAL_PORT}:${RABBITMQ_INTERNAL_PORT}
+      - ${RABBITMQ_EXTERNAL_ADDRESS}:${RABBITMQ_MANAGEMENT_EXTERNAL_PORT}:${RABBITMQ_MANAGEMENT_INTERNAL_PORT}
+    env_file:
+      - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+    deploy:
+      resources:
+        limits:
+          cpus: ${RABBITMQ_CPUS}
+          memory: ${RABBITMQ_MEMORY}
+    networks:
+      - ***
+    container_name: rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  mysql:
+    image: mysql/mysql-server:8.0
+    ports:
+      - ${MYSQL_EXTERNAL_ADDRESS}:${MYSQL_EXTERNAL_PORT}:${MYSQL_INTERNAL_PORT}
+    env_file:
+      - .env
+    volumes:
+      - ***-mysql:/var/lib/mysql
+      - ./.docker/mysql/my.cnf:/etc/my.cnf
+    networks:
+      - ***
+    container_name: mysql
+    deploy:
+      resources:
+        limits:
+          cpus: ${MYSQL_CPUS}
+          memory: ${MYSQL_MEMORY}
+
+  nginx:
+    build: ./nginx
+    container_name: nginx
+    ports:
+      - 80:80
+    volumes:
+      - ./app/static:/static:ro
+      - ~/***-media/:/media:ro
+    command: ["nginx", "-g", "daemon off;"]
+    restart: always
+    depends_on:
+      - app
+    networks:
+      - ***
+
+networks:
+  ***:
+    driver: bridge
+
+volumes:
+  ***-mysql:
+    driver: local
+

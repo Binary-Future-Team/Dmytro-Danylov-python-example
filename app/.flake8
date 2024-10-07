@@ -1,0 +1,30 @@
+[flake8]
+ignore =
+    DJ01
+
+#    # Avoid using null=True on string-based fields such CharField or UrlField.
+#    A003, # shadowing built-in
+#    PIE799, # Incorrectly reports work with lists
+#    T101, # is TODO
+#    ECE001, # Expression is too complex (7.5 > 7)
+#    E722,
+#    W503,  # is not pep-8 compliant
+#    B001,  # bug-bear, it is not your business
+#    PIE786, PIE798, PIE785,  # and not yours, pie
+#    SIM106,  # just not applicable 
+#    N813,  # useless
+#    F401, F403, F405,  # it is not your business! I want all via "from ... import *"!
+#    N400,  # remove when variables will be established
+#    FS003, # use r-string for regex
+#    E731, # conflicts with pylint
+#    E800,
+#    W391,
+#    E265
+
+exclude =
+    Dockerfile.*,
+    migrations,
+    tests
+
+max-line-length = 120
+ensure-newline-before-comments = True

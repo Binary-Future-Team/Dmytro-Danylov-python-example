@@ -1,0 +1,10 @@
+*.env
+*.idea
+*node_modules
+
+*/__pycache__/
+*.pyc
+app/celerybeat-schedule
+app/media/
+app/gunicorn-logs/*
+app/static/products_feed/*

@@ -1,0 +1,93 @@
+stages:
+  - build
+  - deploy
+  - migrate
+
+
+# ---------------------- Stage ------------------------------
+.stage-base: &stage-base
+  before_script:
+    - echo "Creating env file."
+    - cp ${STAGING_ENV_FILE} .env
+  environment: staging
+  tags:
+    - staging
+  only:
+    - develop
+
+
+stage-build-job:
+  <<: *stage-base
+  stage: build
+  script:
+    - echo "Building application..."
+    - docker compose -f staging.yml stop
+    - docker compose -f staging.yml --parallel 2 build
+    - echo "Application successfully built."
+
+
+
+stage-deploy-job:
+  stage: deploy
+  <<: *stage-base
+  script:
+    - echo "Starting application."
+    - docker compose -f staging.yml up -d --remove-orphans
+    - sleep 30
+    - sudo chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/builds/zLsYvL54w/0/binary-future/***/app/static/*
+    - sudo chmod -R 777 /home/gitlab-runner/builds/zLsYvL54w/0/binary-future/***/app/static/*
+    - echo "Application successfully deployed."
+
+
+
+stage-migrate-job:
+  stage: migrate
+  <<: *stage-base
+  script:
+    - sleep 20
+    - echo "Running migrations..."
+    - echo "Starting migrations..."
+    - docker compose -f staging.yml run --rm app python manage.py migrate
+    - echo "Application successfully migrated."
+   
+
+
+# ---------------------- Production ------------------------------
+.prod-base: &prod-base
+  before_script:
+    - echo "Creating env file."
+    - cp ${PRODUCTION_ENVIRONMENT} .env
+  environment: production
+  tags:
+    - production
+  only:
+    - master
+
+
+prod-build-job:
+  <<: *prod-base
+  stage: build
+  script:
+    - echo "Building application..."
+    - docker compose -f prod.yml stop
+    - docker compose -f prod.yml --parallel 2 build
+    - echo "Application successfully built."
+
+
+prod-deploy-job:
+  stage: deploy
+  <<: *prod-base
+  script:
+    - echo "Starting application."
+    - docker compose -f prod.yml up -d --remove-orphans
+    - echo "Application successfully deployed."
+
+
+prod-migrate-job:
+  stage: migrate
+  <<: *prod-base
+  script:
+    - sleep 20
+    - echo "Starting migrations..."
+    - docker compose -f prod.yml run --rm app python manage.py migrate
+    - echo "Application successfully migrated."

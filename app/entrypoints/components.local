@@ -1,0 +1,13 @@
+while ! nc -z $RABBITMQ_HOST $RABBITMQ_PORT;
+do
+  echo "Rabbit at '$RABBITMQ_HOST:$RABBITMQ_PORT' is not ready";
+  sleep 1;
+done;
+echo "Rabbit at '$RABBITMQ_HOST:$RABBITMQ_PORT' is OK now";
+
+while ! nc -z $MYSQL_HOST $MYSQL_PORT;
+do
+  echo "MySQL at '$MYSQL_HOST:$MYSQL_PORT' is not ready";
+  sleep 1;
+done;
+echo "MySQL at '$MYSQL_HOST:$MYSQL_PORT' is OK now";

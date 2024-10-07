@@ -1,0 +1,96 @@
+version: '3'
+
+x-base: &base
+  build:
+    context: .
+    dockerfile: ./Dockerfile.prod
+    args:
+      DEBIAN_FRONTEND: noninteractive
+      BASE_DIR: ${BASE_DIR}
+  volumes:
+    - ./app:${BASE_DIR}:rw
+    - ~/***-media/:/media/:rw
+  env_file:
+    - .env
+  environment:
+    - PYTHONUNBUFFERED=1
+  restart: always
+  networks:
+    - ***-prod
+  depends_on:
+    - rabbitmq
+
+
+services:
+  celery-beat:
+    <<: *base
+    healthcheck:
+      test: celery -A ***.celery status
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    container_name: celery-beat-prod
+    command: ./entrypoints/celery-beat.sh
+
+  celery-worker:
+    <<: *base
+    healthcheck:
+      test: celery -A ***.celery status
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    container_name: celery-worker-prod
+    command: ./entrypoints/celery-worker.sh
+    deploy:
+      resources:
+        limits:
+          cpus: ${WORKER_CPUS}
+          memory: ${WORKER_MEMORY}
+
+  app:
+    <<: *base
+    container_name: app-prod
+    command: gunicorn --config ./***/gunicorn_config.py ***.wsgi
+    restart: always
+
+  rabbitmq:
+    image: rabbitmq:management
+    restart: always
+    env_file:
+      - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+    deploy:
+      resources:
+        limits:
+          cpus: ${RABBITMQ_CPUS}
+          memory: ${RABBITMQ_MEMORY}
+    networks:
+      - ***-prod
+    container_name: rabbitmq-prod
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  nginx:
+    build: ./nginx
+    container_name: nginx-prod
+    ports:
+      - 127.0.0.1:8000:80
+    volumes:
+      - ./app/static/:/static/:ro
+      - ~/***-media/:/media/:ro
+    command: ["nginx", "-g", "daemon off;"]
+    restart: always
+    depends_on:
+      - app
+    networks:
+      - ***-prod
+
+networks:
+  ***-prod:
+    external: true

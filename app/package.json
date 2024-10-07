@@ -1,0 +1,20 @@
+{
+  "name": "***",
+  "version": "1.0.0",
+  "author": "binary-future",
+  "license": "ISC",
+  "description": "To make it easy for you to get started with GitLab, here's a list of recommended next steps.",
+  "keywords": [],
+  "main": "index.js",
+  "scripts": {
+    "webpack:watch:dev": "webpack watch --mode development",
+    "webpack:watch:prod": "webpack watch --mode production"
+  },
+  "devDependencies": {
+    "sass": "^1.69.0",
+    "sass-loader": "^13.3.2",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4",
+    "webpack-fix-style-only-entries": "^0.6.1"
+  }
+}
